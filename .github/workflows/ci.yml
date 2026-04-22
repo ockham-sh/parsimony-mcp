@@ -94,4 +94,9 @@ jobs:
         run: uv sync --extra dev
 
       - name: pip-audit
-        run: uv run pip-audit --strict --ignore-vuln GHSA-none
+        # --skip-editable: parsimony-core is installed editable from the
+        # sibling kernel checkout via [tool.uv.sources]; it isn't published
+        # to PyPI under this version yet, so pip-audit can't resolve it.
+        # Auditing the editable install is unnecessary anyway — kernel
+        # vulnerabilities are caught by the kernel's own pip-audit job.
+        run: uv run pip-audit --strict --skip-editable --ignore-vuln GHSA-none
