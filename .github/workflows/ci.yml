@@ -94,9 +94,11 @@ jobs:
         run: uv sync --extra dev
 
       - name: pip-audit
-        # --skip-editable: parsimony-core is installed editable from the
-        # sibling kernel checkout via [tool.uv.sources]; it isn't published
-        # to PyPI under this version yet, so pip-audit can't resolve it.
-        # Auditing the editable install is unnecessary anyway — kernel
-        # vulnerabilities are caught by the kernel's own pip-audit job.
-        run: uv run pip-audit --strict --skip-editable --ignore-vuln GHSA-none
+        # --skip-editable skips parsimony-core (resolved editable from the
+        # sibling kernel checkout via [tool.uv.sources]) and parsimony-mcp
+        # itself. Kernel vulnerabilities are caught by the kernel's own
+        # pip-audit job; what matters here is the transitive PyPI surface
+        # (mcp, pandas, pydantic, python-dotenv, toon-format), which IS
+        # audited. Drop --strict because pip-audit treats every editable
+        # skip as a strict-mode failure even when intentional.
+        run: uv run pip-audit --skip-editable --ignore-vuln GHSA-none
