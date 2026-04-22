@@ -1,0 +1,88 @@
+name: Release
+
+# Manual trigger. Publishes the current `main` HEAD to PyPI via OIDC trusted
+# publishing (no static PYPI_API_TOKEN in this repo — the only publish path
+# is the per-environment id-token exchange below).
+#
+# Setup checklist (one-time, outside this repo):
+#   1. pypi.org → Manage → Publishing → add trusted publisher:
+#        owner = ockham-sh, repo = parsimony-mcp,
+#        workflow = release.yml, environment = pypi
+#   2. GitHub repo settings → Environments → create 'pypi' with required
+#      reviewer(s) — this is the last human gate before publish.
+#   3. GitHub repo settings → Branches → protect `main`:
+#        require 1 approving review, require CI green, disallow force-push,
+#        squash-merge only.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+concurrency:
+  group: release-parsimony-mcp
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish parsimony-mcp
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/parsimony-mcp
+    permissions:
+      id-token: write  # OIDC token for PyPI trusted publishing
+      contents: read
+    steps:
+      # TODO(security): pin actions by commit SHA before v0.1.0 (non-alpha)
+      # release — matches Hunt's Principle 5 recommendation.
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Read package version from pyproject
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Releasing parsimony-mcp==${version}"
+
+      - name: Check version is not already on PyPI
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          if python3 -c "
+          import sys, urllib.request
+          v = '${VERSION}'
+          try:
+              r = urllib.request.urlopen(f'https://pypi.org/pypi/parsimony-mcp/{v}/json', timeout=10)
+              sys.exit(0 if r.status == 200 else 1)
+          except Exception:
+              sys.exit(1)
+          " 2>/dev/null; then
+            echo "::error::parsimony-mcp==${VERSION} is already on PyPI. Bump the version."
+            exit 1
+          fi
+
+      - name: Run tests
+        run: uv run --no-sync pytest tests
+
+      - name: Build wheel + sdist
+        run: uv build
+
+      - name: Publish to PyPI (OIDC trusted publisher)
+        uses: pypa/gh-action-pypi-publish@release/v1

@@ -1,0 +1,118 @@
+[project]
+name = "parsimony-mcp"
+version = "0.2.0"
+description = "MCP (Model Context Protocol) server adapter for parsimony — exposes a Connectors collection as MCP tools over stdio."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Ockham.sh", email = "team@ockham.sh" }]
+keywords = ["parsimony", "mcp", "model-context-protocol", "agents", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "parsimony-core>=0.4,<0.5",
+    "mcp>=1.0,<2",
+    "pandas>=2.0,<3",
+    # pydantic is used at the bridge boundary (validate_input=False on
+    # the MCP SDK's @call_tool, then explicit ValidationError handling).
+    "pydantic>=2.7,<3",
+    # python-dotenv reads .env at server startup so the same secrets
+    # source is used by the MCP server and the user's code-execution
+    # tool (both share the project venv and CWD).
+    "python-dotenv>=1.0,<2",
+    # TOON encoder for `result_to_content`'s tabular preview. Replaces
+    # the in-tree ``parsimony_mcp._toon`` module — same spec, same agent
+    # tokens, but tracks the official spec as it evolves.
+    "toon-format>=0.9.0b1,<0.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pip-audit>=2.7",
+]
+
+[project.urls]
+Homepage = "https://parsimony.dev"
+Repository = "https://github.com/ockham-sh/parsimony-mcp"
+Changelog = "https://github.com/ockham-sh/parsimony-mcp/blob/main/CHANGELOG.md"
+Issues = "https://github.com/ockham-sh/parsimony-mcp/issues"
+
+[project.scripts]
+parsimony-mcp = "parsimony_mcp.__main__:main"
+
+# Local dev override — resolve `parsimony-core` from the sibling
+# `ockham-sh/parsimony` checkout at `../parsimony`. This is the same
+# pattern parsimony-connectors uses during the 0.4-alpha interregnum
+# while the kernel alpha ships to PyPI. Remove this once the kernel
+# release matches the pin above.
+[tool.uv.sources]
+parsimony-core = { path = "../parsimony", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["parsimony_mcp"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "S",    # flake8-bandit — cheap security tripwires
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "S101",  # assert used — pytest needs it
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S103", "S105", "S106"]  # asserts, intentional world-writable test setups, and test fixtures
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+# The `mcp` SDK has incomplete stubs in some releases; allow untyped calls
+# into it rather than littering the codebase with `type: ignore`.
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+strict = false
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib --cov=parsimony_mcp --cov-report=term-missing"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
