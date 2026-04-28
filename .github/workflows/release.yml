@@ -40,7 +40,7 @@ jobs:
     steps:
       # TODO(security): pin actions by commit SHA before v0.1.0 (non-alpha)
       # release — matches Hunt's Principle 5 recommendation.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
