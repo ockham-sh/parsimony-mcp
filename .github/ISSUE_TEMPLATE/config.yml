@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/ockham-sh/parsimony-mcp/security/advisories/new
+    about: Report a security issue privately — please do not open public issues for vulnerabilities.
+  - name: Kernel / framework question
+    url: https://github.com/ockham-sh/parsimony/discussions
+    about: Questions about the parsimony kernel, contract, or discovery belong on the kernel repo.
+  - name: Connector / plugin question
+    url: https://github.com/ockham-sh/parsimony-connectors/issues
+    about: Bugs or questions about a specific `parsimony-<name>` plugin belong on the connectors monorepo.

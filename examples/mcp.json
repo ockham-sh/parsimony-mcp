@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "parsimony": {
+      "command": "uv",
+      "args": ["run", "--env-file", ".env", "parsimony-mcp"],
+      "env": {
+        "PARSIMONY_MCP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}

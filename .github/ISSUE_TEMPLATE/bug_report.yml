@@ -1,0 +1,72 @@
+name: Bug Report
+description: Report a bug in the parsimony-mcp server or scaffolder
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: client
+    attributes:
+      label: MCP client
+      options:
+        - Claude Desktop
+        - Claude Code
+        - Cursor
+        - Continue
+        - Other MCP client
+        - Programmatic (`create_server`)
+    validations:
+      required: true
+
+  - type: input
+    id: mcp-version
+    attributes:
+      label: parsimony-mcp version
+      description: Output of `pip show parsimony-mcp` → Version
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: kernel-version
+    attributes:
+      label: parsimony-core version
+      placeholder: "0.4.0"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: "3.12"
+    validations:
+      required: true
+
+  - type: textarea
+    id: plugins
+    attributes:
+      label: Installed parsimony-* plugins
+      description: Output of `pip list | grep parsimony` (or equivalent).
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: What did you run, with what config?
+    validations:
+      required: true
+
+  - type: textarea
+    id: log-output
+    attributes:
+      label: Server log output
+      description: Set `PARSIMONY_MCP_LOG_LEVEL=DEBUG` and paste stderr output. Redact any API keys.
+      render: text
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: OS, network/VPN, hypotheses.
