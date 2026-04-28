@@ -57,14 +57,6 @@ Issues = "https://github.com/ockham-sh/parsimony-mcp/issues"
 [project.scripts]
 parsimony-mcp = "parsimony_mcp.__main__:main"
 
-# Local dev override — resolve `parsimony-core` from the sibling
-# `ockham-sh/parsimony` checkout at `../parsimony`. This is the same
-# pattern parsimony-connectors uses during the 0.4-alpha interregnum
-# while the kernel alpha ships to PyPI. Remove this once the kernel
-# release matches the pin above.
-[tool.uv.sources]
-parsimony-core = { path = "../parsimony", editable = true }
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

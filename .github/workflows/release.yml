@@ -47,8 +47,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install package
-        run: uv pip install --system -e ".[dev]"
+      - name: Sync project (creates .venv, installs editable + dev extras)
+        run: uv sync --extra dev
 
       - name: Read package version from pyproject
         id: version
