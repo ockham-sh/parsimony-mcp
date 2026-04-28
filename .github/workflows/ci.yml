@@ -101,4 +101,9 @@ jobs:
         # (mcp, pandas, pydantic, python-dotenv, toon-format), which IS
         # audited. Drop --strict because pip-audit treats every editable
         # skip as a strict-mode failure even when intentional.
-        run: uv run pip-audit --skip-editable --ignore-vuln GHSA-none
+        #
+        # CVE-2026-3219 (pip): concatenated tar+ZIP handling. uv has its own
+        # resolver and doesn't invoke pip's installer at runtime; pip is only
+        # present as a transitive dev tool here. Revisit when a fixed pip
+        # release ships.
+        run: uv run pip-audit --skip-editable --ignore-vuln CVE-2026-3219

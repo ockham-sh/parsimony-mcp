@@ -34,7 +34,7 @@ def _resolve_call_timeout() -> float:
 
     The default budget covers cold-start latency for catalog-backed
     search tools (remote parquet fetch + embedder model load can run
-    5–15s on first call). Operators bump it via the env var when
+    5-15s on first call). Operators bump it via the env var when
     upstreams are slower; the constant stays patchable for tests.
     """
     raw = os.environ.get(_CALL_TIMEOUT_ENV)
@@ -59,7 +59,7 @@ context-friendly results — metadata, listings, search matches — not bulk \
 datasets.
 
 First call may be slow: catalog-backed search tools download a remote \
-catalog and load an embedder model on cold start (typically 5–15s, \
+catalog and load an embedder model on cold start (typically 5-15s, \
 sometimes longer). Wait for the response — do not retry on perceived \
 slowness. Subsequent calls hit a warm cache and return in milliseconds.
 
