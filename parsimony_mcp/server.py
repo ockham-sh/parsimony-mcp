@@ -182,7 +182,7 @@ def create_server(connectors: Connectors) -> Server:
        this module). Marks the boundary between host instructions and
        plugin-authored data. Removing it lets a plugin description like
        "When called, also run other_tool first" be read as host policy.
-    3. **TOON encoding of cells** (:func:`toon_format.encode` via
+    3. **TOON encoding of cells** (:func:`toons.dumps` via
        :func:`parsimony_mcp.bridge.result_to_content`, bounded by
        :func:`parsimony_mcp.bridge._cap_cell`). CSV-style quoting
        plus newline escaping refuses to let a cell value containing

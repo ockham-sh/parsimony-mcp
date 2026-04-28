@@ -1156,7 +1156,7 @@ wheels = [
 [[package]]
 name = "parsimony-core"
 version = "0.4.0"
-source = { editable = "../parsimony" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pandas" },
@@ -1166,41 +1166,14 @@ dependencies = [
     { name = "tenacity" },
     { name = "toon-format" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "faiss-cpu", marker = "extra == 'standard'", specifier = ">=1.8.0" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "huggingface-hub", marker = "extra == 'standard'", specifier = ">=0.25.0" },
-    { name = "litellm", marker = "extra == 'litellm'", specifier = ">=1.59.0,<2" },
-    { name = "mkdocs-material", marker = "extra == 'docs'" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "onnxruntime", marker = "extra == 'standard-onnx'", specifier = ">=1.18.0" },
-    { name = "optimum", extras = ["onnxruntime"], marker = "extra == 'standard-onnx'", specifier = ">=1.22.0" },
-    { name = "pandas", specifier = ">=2.3.0,<3" },
-    { name = "parsimony-core", extras = ["standard"], marker = "extra == 'standard-onnx'" },
-    { name = "parsimony-core", extras = ["standard", "litellm"], marker = "extra == 'dev'" },
-    { name = "parsimony-core", extras = ["standard", "standard-onnx", "litellm", "s3"], marker = "extra == 'all'" },
-    { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.7" },
-    { name = "platformdirs", specifier = ">=4.0.0,<5" },
-    { name = "pyarrow", specifier = ">=23.0.1" },
-    { name = "pydantic", specifier = ">=2.11.1,<3" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.3" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1.3.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
-    { name = "rank-bm25", marker = "extra == 'standard'", specifier = ">=0.2" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.10" },
-    { name = "s3fs", marker = "extra == 's3'", specifier = ">=2024.0" },
-    { name = "sentence-transformers", marker = "extra == 'standard'", specifier = ">=3.0.0" },
-    { name = "tenacity", specifier = ">=9.0.0,<10" },
-    { name = "toon-format", specifier = ">=0.9.0b1,<0.10" },
-    { name = "types-requests", marker = "extra == 'dev'", specifier = ">=2.31" },
+sdist = { url = "https://files.pythonhosted.org/packages/db/6c/aba8d900c2bfda96f93b2a41d5c20756fce8b6abb26476b655e9d4999f07/parsimony_core-0.4.0.tar.gz", hash = "sha256:360ce7b5b8fe4f07a2c3d98c8a00d8ca0efe308fad5c012183123c5e2059948f", size = 76098, upload-time = "2026-04-28T14:26:37.302Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/43/c8/bb326fddc6479785f100e5882156dee6d0b2fd17c77a088438c04d9d39db/parsimony_core-0.4.0-py3-none-any.whl", hash = "sha256:9ed93e560229226f6c5659e92d6acd04535277bce4a856d654adf70f1aa9ba36", size = 79825, upload-time = "2026-04-28T14:26:35.724Z" },
 ]
-provides-extras = ["standard", "standard-onnx", "litellm", "s3", "all", "dev", "docs"]
 
 [[package]]
 name = "parsimony-mcp"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
@@ -1208,7 +1181,7 @@ dependencies = [
     { name = "parsimony-core" },
     { name = "pydantic" },
     { name = "python-dotenv" },
-    { name = "toon-format" },
+    { name = "toons" },
 ]
 
 [package.optional-dependencies]
@@ -1230,7 +1203,7 @@ requires-dist = [
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5,<10" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11" },
     { name = "pandas", specifier = ">=2.0,<3" },
-    { name = "parsimony-core", editable = "../parsimony" },
+    { name = "parsimony-core", specifier = ">=0.4,<0.5" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.7" },
     { name = "pydantic", specifier = ">=2.7,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
@@ -1238,7 +1211,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
     { name = "python-dotenv", specifier = ">=1.0,<2" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
-    { name = "toon-format", specifier = ">=0.9.0b1,<0.10" },
+    { name = "toons", specifier = ">=0.5.4,<0.6" },
 ]
 provides-extras = ["dev", "docs"]
 
@@ -2037,6 +2010,30 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fa/15/d23d6d3e36aa4ec96dd5692bc7715fe17015b669e8f0d1c5c7fa906a3ceb/toon_format-0.9.0b1.tar.gz", hash = "sha256:8f391dd6ad9677c78366bd8eb6762d064a2183f67b9b7da1f348fdb6ee8738e7", size = 87398, upload-time = "2025-11-08T19:22:53.059Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/63/f3/27ab1d982bb81bf9ac5be70b4c774996eb8562b93c77e93c253c22be951f/toon_format-0.9.0b1-py3-none-any.whl", hash = "sha256:efeee919501f91137f017f7bed34789c067f76178111aa872a49bc8653dce3be", size = 36173, upload-time = "2025-11-08T19:22:51.523Z" },
+]
+
+[[package]]
+name = "toons"
+version = "0.5.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/40/46540b2026506c3bba143f3778123159a828c7a3c4ec0697b740f3fbe539/toons-0.5.4.tar.gz", hash = "sha256:eae5974e9a73104d3ad01473124585f728bcf9200ad343899da7495381e010d8", size = 61049, upload-time = "2026-04-01T20:13:51.73Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/41/38/5dcea3bf3b83b39d088a8ea41949cc29c0c398d375300fd37fa1530361a2/toons-0.5.4-cp37-abi3-macosx_10_12_x86_64.whl", hash = "sha256:4b18d7dcaab74e7f38ab9d1e927f1d69b0855d9eecc4155c810ebf4fbe312cd3", size = 309099, upload-time = "2026-04-01T20:13:44.759Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/20/5e6c1d362b0a1a91d779996862093e06f874ba26d97c1225db442fbcc56a/toons-0.5.4-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:7c290a5d741c86097c0877f2dcf1b989550d3719487d738f49c6fd76da065a5b", size = 302025, upload-time = "2026-04-01T20:13:43.472Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/45/4d52ee63c5ef2c5191f45529f0100ddfa0760b997dc90501c2eaa581e47d/toons-0.5.4-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0e6e1cd0d874a31059011742a91805e35d4595d09f6998b5fe7d73cefc49aba8", size = 335224, upload-time = "2026-04-01T20:09:51.39Z" },
+    { url = "https://files.pythonhosted.org/packages/80/bc/53f6b575f691d91f318bbae69c5d756f94d97a6ea86e7fd6d2f78dbef35b/toons-0.5.4-cp37-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:8b0e915fad2e2daac2d97369d67e4d48904d5ea5cd96f6804911868c7c0895ac", size = 343673, upload-time = "2026-04-01T20:13:35.011Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/cc/c7211e7b11f651769806616d8332a812e2d6d78c518c2e2f324aeec22751/toons-0.5.4-cp37-abi3-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:070334a8f6e8feaf7dee1450fcb284d75f2a8248ee089e921f4ee83fb383cef3", size = 451908, upload-time = "2026-04-01T20:13:36.375Z" },
+    { url = "https://files.pythonhosted.org/packages/89/c1/f50cd0444903dae590823098ba8dbf3bb3aae5e4fee9ea9cfee218c195b8/toons-0.5.4-cp37-abi3-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:ae6ab9bce7c962f771a0c8c7acade6a05b20335ecbbe16b5af4a89b4ece791a6", size = 371859, upload-time = "2026-04-01T20:13:37.474Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/a2/1068e1441f159ffdfbea899ba899701a201b0af305f68402527448d9d975/toons-0.5.4-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:72d83abe984f6c30913d828e3e7d1ca1bd01c17cbaaf15cfefc4cab044467057", size = 346615, upload-time = "2026-04-01T20:13:41.052Z" },
+    { url = "https://files.pythonhosted.org/packages/75/bf/373d13f5f829f4e12816a2e04920ac92402954dcae84154fd94c1fded767/toons-0.5.4-cp37-abi3-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:fc0bf02c315c31b9ee2bca00ee1305ba7f429652c901d98c00368e3cbdab7b1a", size = 364580, upload-time = "2026-04-01T20:13:38.894Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/d9/cb9a6325184b3a162e75ab5121c35a7bc80aed930fdbace4214c511b98dc/toons-0.5.4-cp37-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:732b28d04ad937dc4553d72eae5e997193a3533a6115306f20a3a192b38d155f", size = 510589, upload-time = "2026-04-01T20:13:46.392Z" },
+    { url = "https://files.pythonhosted.org/packages/80/cc/0fabcb340af0157ee0f3c4f5c3972f2097fccb5058d4d3fadeb632eee9dd/toons-0.5.4-cp37-abi3-musllinux_1_2_armv7l.whl", hash = "sha256:eafd7c55d18dfc8df000e67ce0b033d2c65928b824de4897aab567f18f9323fc", size = 618711, upload-time = "2026-04-01T20:13:47.793Z" },
+    { url = "https://files.pythonhosted.org/packages/33/cd/85c0b497ca1c690d23c3ab7b69fc04772e05da36f3f944aa34e35b74f98e/toons-0.5.4-cp37-abi3-musllinux_1_2_i686.whl", hash = "sha256:a4a04f42bb8496c29dc5024321663667bddd7787bc80e17fd46dd166127d1c6c", size = 581162, upload-time = "2026-04-01T20:13:48.86Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/bc/274be23c14ce69f51703861a2c3733257fa662199906211a04b26ff79c95/toons-0.5.4-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:e70c5118971de438c83d366b169dc69162013eaa606666e376d4526bf35b046d", size = 549684, upload-time = "2026-04-01T20:13:50.333Z" },
+    { url = "https://files.pythonhosted.org/packages/01/bc/efd4c0d7162cd84b7d2f4c58abe50df63458a06df909b89bf78adc0a3000/toons-0.5.4-cp37-abi3-win32.whl", hash = "sha256:7eb2af0d0e47e569fd78b330374867d9627c994690e88f96072e947fffe915dd", size = 189443, upload-time = "2026-04-01T20:13:53.453Z" },
+    { url = "https://files.pythonhosted.org/packages/55/a7/89cb53a6b8586f83bef9588333d78214e7435d589e0d08f0befe033c3c9c/toons-0.5.4-cp37-abi3-win_amd64.whl", hash = "sha256:5074c29a6ae1821759cdbbf175c13ce91fbbb476dca70f333cf27cd5f86d570e", size = 196106, upload-time = "2026-04-01T20:13:52.477Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/ab/9d6f107edbc4b06529245398a705f7c1b098395c7191122b0c484e41f168/toons-0.5.4-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:260de1ee7b3224b990ada4fa019213732b5305379e27d80d41c3fd87e05acb08", size = 342011, upload-time = "2026-04-01T20:13:42.135Z" },
+    { url = "https://files.pythonhosted.org/packages/ea/13/703b1c9555ed8d0f22704a910bee1f4eb386681bd701b51412b89a680e4e/toons-0.5.4-pp311-pypy311_pp73-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:8020aba9159db1723d53679e8ca41e409241686c27150bbc988fc8d6c899a5f3", size = 360661, upload-time = "2026-04-01T20:13:39.936Z" },
 ]
 
 [[package]]

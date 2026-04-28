@@ -1,6 +1,6 @@
 [project]
 name = "parsimony-mcp"
-version = "0.2.0"
+version = "0.2.1"
 description = "MCP (Model Context Protocol) server adapter for parsimony — exposes a Connectors collection as MCP tools over stdio."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -29,10 +29,11 @@ dependencies = [
     # source is used by the MCP server and the user's code-execution
     # tool (both share the project venv and CWD).
     "python-dotenv>=1.0,<2",
-    # TOON encoder for `result_to_content`'s tabular preview. Replaces
-    # the in-tree ``parsimony_mcp._toon`` module — same spec, same agent
-    # tokens, but tracks the official spec as it evolves.
-    "toon-format>=0.9.0b1,<0.10",
+    # TOON encoder for `result_to_content`'s tabular preview. Rust-backed
+    # implementation of the spec (alesanfra/toons). Stable; abi3 wheels
+    # cover Linux/macOS/Windows + PyPy. Replaces the prior toon-format
+    # beta that forced `--prerelease=allow` on every downstream install.
+    "toons>=0.5.4,<0.6",
 ]
 
 [project.optional-dependencies]
