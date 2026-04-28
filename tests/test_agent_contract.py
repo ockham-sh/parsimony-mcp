@@ -214,7 +214,7 @@ class TestToonQuotingDefendsAgainstInjection:
     per-cell defense the deleted ``_sanitize_cell`` used to provide.
     These tests assert the security guarantee through the public surface
     (``result_to_content``) rather than the encoder internals — the
-    encoder is now the official ``toon-format`` lib.
+    encoder is now the Rust-backed ``toons`` lib.
     """
 
     def _df_text(self, value: str) -> str:
@@ -250,7 +250,7 @@ class TestToonQuotingDefendsAgainstInjection:
 
     def test_cell_with_double_quote_is_escaped(self):
         text = self._df_text('say "hi"')
-        # toon-format uses JSON-style backslash escaping for embedded
+        # toons uses JSON-style backslash escaping for embedded
         # double quotes inside a quoted field, so the cell can't break
         # out by terminating its own quotes.
         assert r'"say \"hi\""' in text

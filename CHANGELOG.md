@@ -2,6 +2,19 @@
 
 All notable changes to `parsimony-mcp` will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.1]
+
+### Changed
+
+- TOON encoder swapped from `toon-format` (beta, `0.9.0b1`) to `toons`
+  (`>=0.5.4,<0.6`). `toons` is a Rust-backed implementation of the same
+  spec, ships stable wheels for Linux/macOS/Windows + PyPy via the abi3
+  stable ABI, and produces byte-identical output for every assertion in
+  our agent-contract and bridge test suites. Eliminates the
+  `--prerelease=allow` requirement that downstream installs (e.g. user
+  projects depending on `parsimony-mcp`) had to pass to resolve the prior
+  beta pin.
+
 ## [0.2.0]
 
 `parsimony-mcp` is back in its own repository after a brief stop in the `parsimony-connectors` monorepo during the kernel's discovery refactor. The kernel shipped `parsimony-core==0.4` with the new `parsimony.discover` surface (`iter_providers`, `load`, `load_all`) and a richer `Connectors` verb set (`merge`, `bind_env`, `env_vars`, `unbound`, `replace`); `parsimony.discovery` and `parsimony.client` are gone. This release rewires `parsimony-mcp` to the new surface and picks up the improved `init` subcommand, `_env.py` bounded `.env` loader, and `.gitignore`-guarded scaffolder from the monorepo era.

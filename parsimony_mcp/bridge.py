@@ -19,7 +19,7 @@ prose) while TOON's CSV-style row format only needs quoting for
 structural characters that are easier to reason about; and (b)
 TOON's tabular form spends column names once in a header rather
 than once per row, saving 30-50% of tokens for typical preview
-tables. The encoder is the official ``toon-format`` library.
+tables. The encoder is the Rust-backed ``toons`` library.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ from parsimony.errors import (
 )
 from parsimony.result import Result
 from pydantic import ValidationError
-from toon_format import encode
+from toons import dumps as encode
 
 _MAX_ROWS = 50
 _MAX_VALIDATION_ERRORS = 5
