@@ -38,11 +38,11 @@ jobs:
       # TODO(security): pin actions by commit SHA before v0.1.0 (non-alpha)
       # release — matches Hunt's Principle 5 recommendation. Tag pins here
       # mirror the parsimony-connectors convention for now.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: parsimony-mcp
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: ${{ env.KERNEL_REPO }}
           ref: ${{ env.KERNEL_REF }}
@@ -75,11 +75,11 @@ jobs:
       run:
         working-directory: parsimony-mcp
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: parsimony-mcp
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: ${{ env.KERNEL_REPO }}
           ref: ${{ env.KERNEL_REF }}
