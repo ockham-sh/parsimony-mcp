@@ -37,7 +37,7 @@ theme:
     repo: fontawesome/brands/github
 
 nav:
-  - Home: index.md
+  - Overview: index.md
   - Getting Started:
       - Installation: installation.md
       - Configuration: configuration.md
