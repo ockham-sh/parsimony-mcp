@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "parsimony": {
+      "command": "/absolute/path/to/your/venv/bin/parsimony-mcp",
+      "env": {
+        "FRED_API_KEY": "your-fred-key-here",
+        "PARSIMONY_MCP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}

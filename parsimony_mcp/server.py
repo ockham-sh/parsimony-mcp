@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from typing import Any, cast
 
 from mcp.server.lowlevel.server import Server
@@ -24,7 +25,31 @@ from parsimony_mcp.bridge import connector_to_tool, result_to_content, translate
 
 logger = logging.getLogger("parsimony_mcp.server")
 
-_CALL_TIMEOUT_SECONDS = 30
+_CALL_TIMEOUT_SECONDS: float = 60.0
+_CALL_TIMEOUT_ENV = "PARSIMONY_MCP_CALL_TIMEOUT_SECONDS"
+
+
+def _resolve_call_timeout() -> float:
+    """Resolve the per-call timeout, honoring the env override.
+
+    The default budget covers cold-start latency for catalog-backed
+    search tools (remote parquet fetch + embedder model load can run
+    5–15s on first call). Operators bump it via the env var when
+    upstreams are slower; the constant stays patchable for tests.
+    """
+    raw = os.environ.get(_CALL_TIMEOUT_ENV)
+    if raw is None:
+        return _CALL_TIMEOUT_SECONDS
+    try:
+        return float(raw)
+    except ValueError:
+        logger.warning(
+            "invalid %s=%r; using default %ss",
+            _CALL_TIMEOUT_ENV,
+            raw,
+            _CALL_TIMEOUT_SECONDS,
+        )
+        return _CALL_TIMEOUT_SECONDS
 
 _MCP_SERVER_INSTRUCTIONS = """\
 # Parsimony — data discovery tools
@@ -32,6 +57,11 @@ _MCP_SERVER_INSTRUCTIONS = """\
 These MCP tools search and discover data. They return compact, \
 context-friendly results — metadata, listings, search matches — not bulk \
 datasets.
+
+First call may be slow: catalog-backed search tools download a remote \
+catalog and load an embedder model on cold start (typically 5–15s, \
+sometimes longer). Wait for the response — do not retry on perceived \
+slowness. Subsequent calls hit a warm cache and return in milliseconds.
 
 For bulk retrieval, run Python from the project root using exactly \
 this invocation:
@@ -183,6 +213,7 @@ def create_server(connectors: Connectors) -> Server:
     instructions = _MCP_SERVER_INSTRUCTIONS.format(catalog=catalog_text)
     server = Server("parsimony-data", instructions=instructions)
     tool_map: dict[str, Connector] = {c.name: c for c in tool_connectors}
+    timeout_seconds = _resolve_call_timeout()
 
     @server.list_tools()  # type: ignore[no-untyped-call,untyped-decorator]
     async def list_tools() -> list[Tool]:
@@ -197,12 +228,12 @@ def create_server(connectors: Connectors) -> Server:
                 [TextContent(type="text", text=f"Unknown tool: {name!r}. Available tools: {available}")]
             )
         try:
-            async with asyncio.timeout(_CALL_TIMEOUT_SECONDS):
+            async with asyncio.timeout(timeout_seconds):
                 result = await conn(**arguments)
         except TimeoutError:
             logger.warning(
                 "tool call timed out",
-                extra={"tool": name, "timeout_seconds": _CALL_TIMEOUT_SECONDS},
+                extra={"tool": name, "timeout_seconds": timeout_seconds},
             )
             return _error_result(
                 [
@@ -210,7 +241,7 @@ def create_server(connectors: Connectors) -> Server:
                         type="text",
                         text=(
                             f"Upstream call for {name} timed out after "
-                            f"{_CALL_TIMEOUT_SECONDS}s. DO NOT immediately retry "
+                            f"{timeout_seconds}s. DO NOT immediately retry "
                             f"this tool; pick a different connector or inform "
                             f"the user that the upstream provider is slow."
                         ),

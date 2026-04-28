@@ -1,0 +1,36 @@
+name: Feature Request
+description: Suggest a new feature or improvement for parsimony-mcp
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would the behavior look like?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds exist today?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - MCP bridge (error translation, result encoding)
+        - Instruction template / agent-facing prose
+        - `init` scaffolder
+        - `.env` loader
+        - Logging / observability
+        - Programmatic API (`create_server`)
+        - Documentation
+        - Other
