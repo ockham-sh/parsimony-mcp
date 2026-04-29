@@ -29,13 +29,7 @@ from typing import Any
 import pandas as pd
 from mcp.types import TextContent, Tool
 from parsimony.connector import Connector
-from parsimony.errors import (
-    ConnectorError,
-    EmptyDataError,
-    PaymentRequiredError,
-    RateLimitError,
-    UnauthorizedError,
-)
+from parsimony.errors import ConnectorError
 from parsimony.result import Result
 from pydantic import ValidationError
 from toons import dumps as encode
@@ -115,60 +109,29 @@ def _format_validation_error(exc: ValidationError, tool_name: str) -> str:
 def translate_error(exc: BaseException, tool_name: str) -> list[TextContent]:
     """Render an exception as agent-safe text content.
 
-    Each branch emits a FIXED user-safe string. ``str(exc)`` is never spliced
-    into output, because ``ConnectorError`` subclasses (and the httpx errors
-    they wrap) commonly embed request URLs with query-string credentials.
-    The agent gets the error class semantics plus the provider name; it does
-    not get the raw upstream message.
+    The agent-facing prose for ``ConnectorError`` subclasses lives in
+    :mod:`parsimony.errors` — each kernel default message embeds the
+    class semantics plus the appropriate agent-loop directive. This
+    bridge faithfully renders ``str(exc)`` for those classes; the locked
+    contract lives in ``parsimony/tests/test_errors.py``.
+
+    For ``ValidationError`` we build a custom string locally because
+    Pydantic's default ``__str__`` includes ``input_value=`` which can
+    round-trip user-typed secrets through the LLM transcript. For all
+    other exceptions we emit only ``type(exc).__name__`` — the cause
+    chain on httpx-wrapped errors carries bearer tokens and request URLs,
+    so ``str(exc)`` / interpolation of ``exc`` is forbidden in this
+    branch (enforced by ``tests/test_secret_leakage_guards.py``).
     """
     if isinstance(exc, ValidationError):
         return _error_content(_format_validation_error(exc, tool_name))
-    if isinstance(exc, UnauthorizedError):
-        return _error_content(
-            f"Authentication error for {exc.provider}. Check that the API key "
-            f"env var is configured correctly for this connector; DO NOT retry "
-            f"this tool with different arguments."
-        )
-    if isinstance(exc, PaymentRequiredError):
-        return _error_content(
-            f"Plan restriction for {exc.provider}: this endpoint requires a "
-            f"higher-tier API plan. DO NOT retry this tool; try a different "
-            f"connector or inform the user that their current plan cannot "
-            f"serve this data."
-        )
-    if isinstance(exc, RateLimitError):
-        if exc.quota_exhausted:
-            return _error_content(
-                f"Rate limit for {exc.provider}: API quota exhausted for the "
-                f"current billing period. DO NOT retry; either use a different "
-                f"connector or inform the user to wait for the next billing "
-                f"cycle."
-            )
-        return _error_content(
-            f"Rate limit for {exc.provider}: retry after "
-            f"{exc.retry_after:.0f} seconds. DO NOT retry this tool "
-            f"immediately; pick a different connector, ask the user, or stop."
-        )
-    if isinstance(exc, EmptyDataError):
-        return _error_content(
-            f"No data returned from {exc.provider} for the given parameters. "
-            f"This is a successful query with an empty result set — the "
-            f"parameters likely do not match any records. Adjust parameters "
-            f"or try a different connector."
-        )
     if isinstance(exc, ConnectorError):
-        # ProviderError, ParseError, or the base ConnectorError. Emit the
-        # provider name + exception class only — never the raw message.
-        return _error_content(
-            f"Error from {exc.provider} ({type(exc).__name__}). "
-            f"Upstream provider returned an unexpected response."
-        )
-    # Catch-all — caller (server.call_tool) is expected to log full context
-    # before returning this, never log exc here because _logging's JSON
-    # formatter omits tracebacks by default and we're relying on that.
-    # ``type(exc).__name__`` is a Python class identifier and carries no user
-    # data, so exposing it is safe and lets the agent distinguish transient
-    # upstream faults (e.g. HTTPStatusError) from local bugs.
+        # str(exc) is kernel-controlled text for typed subclasses, and
+        # author-controlled-but-contractually-safe for bare ConnectorError.
+        # See parsimony.errors module docstring for the contract.
+        return _error_content(f"[{tool_name}] {exc}")
+    # Unknown exception — bearer-token leak risk via __cause__/__context__
+    # on wrapped httpx errors. Emit only the class identifier.
     return _error_content(
         f"Internal error in {tool_name} ({type(exc).__name__}); see server logs"
     )
