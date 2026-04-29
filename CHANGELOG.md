@@ -2,6 +2,25 @@
 
 All notable changes to `parsimony-mcp` will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **`bridge.translate_error` collapses to `f"[{tool_name}] {exc}"` for any
+  `ConnectorError`.** The agent-facing prose now lives in `parsimony.errors`
+  default messages — the bridge is a thin renderer. The five per-class
+  branches (`UnauthorizedError`, `PaymentRequiredError`, `RateLimitError`,
+  `EmptyDataError`, generic `ConnectorError`) collapse into one. The
+  `ValidationError` branch (which strips Pydantic's `input_value=` for
+  secret safety) and the unknown-`Exception` fallback are unchanged.
+  Requires `parsimony-core` from the typed-defaults branch.
+- **`tests/test_secret_leakage_guards.py` AST walker scopes the `str(exc)`
+  ban to the unknown-`Exception` branch only.** `str(exc)` is now allowed
+  inside `if isinstance(exc, ConnectorError):` because the kernel guarantees
+  those messages are agent-safe. The walker skips the body of
+  ConnectorError-guarded branches and walks everything else, so a future
+  PR that interpolates `exc` into the unknown branch still trips CI.
+
 ## [0.2.1]
 
 ### Changed
