@@ -105,36 +105,48 @@ class TestCatalogDelimiter:
 
 
 class TestTranslateErrorDirectives:
-    """The directive prose is agent-loop control; rewording breaks it."""
+    """The bridge faithfully renders the kernel's agent-facing prose.
+
+    The directive strings themselves live in :mod:`parsimony.errors` and
+    are locked by ``parsimony/tests/test_errors.py``. These tests assert
+    only that the bridge does not drop them on the way to the agent —
+    i.e. ``str(exc)`` ends up in the rendered text. Rewording the kernel
+    defaults is a deliberate kernel change with an LLM eval pass.
+    """
 
     def test_unauthorized_forbids_retry_with_different_args(self):
-        exc = UnauthorizedError(provider="fred")
+        exc = UnauthorizedError(provider="fred", env_var="FRED_API_KEY")
         text = translate_error(exc, "fred_search")[0].text
-        assert "DO NOT retry this tool with different arguments" in text
-        assert "fred" in text
+        assert str(exc) in text
+        assert "DO NOT retry with different arguments" in text
+        assert "FRED_API_KEY" in text
 
     def test_payment_required_forbids_retry_and_names_recovery(self):
         exc = PaymentRequiredError(provider="fred")
         text = translate_error(exc, "fred_search")[0].text
-        assert "DO NOT retry this tool" in text
-        assert "try a different connector" in text
+        assert str(exc) in text
+        assert "DO NOT retry" in text
+        assert "different connector" in text
 
     def test_rate_limit_quota_exhausted_forbids_retry(self):
         exc = RateLimitError(provider="fred", retry_after=60, quota_exhausted=True)
         text = translate_error(exc, "fred_search")[0].text
+        assert str(exc) in text
         assert "DO NOT retry" in text
         assert "billing" in text
 
     def test_rate_limit_transient_forbids_immediate_retry_and_names_alternatives(self):
         exc = RateLimitError(provider="fred", retry_after=60, quota_exhausted=False)
         text = translate_error(exc, "fred_search")[0].text
-        assert "DO NOT retry this tool" in text
+        assert str(exc) in text
+        assert "DO NOT retry this tool immediately" in text
         assert "pick a different connector, ask the user, or stop" in text
 
     def test_empty_data_signals_successful_empty_result(self):
         exc = EmptyDataError(provider="fred")
         text = translate_error(exc, "fred_search")[0].text
-        assert "successful query with an empty result set" in text
+        assert str(exc) in text
+        assert "Adjust parameters" in text
         # No "DO NOT retry" — empty data is valid, agent may retry with
         # different parameters.
         assert "DO NOT" not in text

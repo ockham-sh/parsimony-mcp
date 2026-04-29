@@ -29,6 +29,7 @@ that explicit acknowledgement.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import parsimony_mcp
@@ -75,13 +76,17 @@ class TestNoSecretLeakingPatterns:
             )
 
     def test_translate_error_uses_safe_class_name_pattern(self) -> None:
-        """The bridge surfaces exception classes via type(exc).__name__, not str(exc).
+        """str(exc) / f"...{exc}..." is forbidden in the unknown-Exception branch.
 
-        AST-walks translate_error so the docstring's literal string
-        "``str(exc)`` is never spliced" doesn't false-positive a naive
-        substring grep. Catches the most likely regression: a future PR
-        that "simplifies" the catch-all branch to inline str(exc) for
-        ConnectorError or the generic Exception arm.
+        ``str(exc)`` is allowed inside ``isinstance(exc, ConnectorError)``
+        branches because the kernel guarantees those messages are agent-safe
+        (see ``parsimony.errors``). It is forbidden everywhere else in
+        ``translate_error`` because httpx-wrapped errors carry bearer tokens
+        and request URLs via ``__cause__``/``__context__``.
+
+        The AST walker descends into every node of ``translate_error``'s body
+        EXCEPT the bodies of ``if isinstance(exc, ConnectorError): ...`` blocks
+        — those are the branches where ``str(exc)`` is safe by contract.
         """
         import ast
 
@@ -99,8 +104,7 @@ class TestNoSecretLeakingPatterns:
         )
         assert translate_error_func is not None, "translate_error not found in bridge.py"
 
-        # Walk the function body (skipping the docstring) for any
-        # str(exc) call or {exc} f-string interpolation.
+        # Drop the docstring.
         body_nodes = translate_error_func.body
         if (
             body_nodes
@@ -108,24 +112,56 @@ class TestNoSecretLeakingPatterns:
             and isinstance(body_nodes[0].value, ast.Constant)
             and isinstance(body_nodes[0].value.value, str)
         ):
-            body_nodes = body_nodes[1:]  # drop docstring
+            body_nodes = body_nodes[1:]
 
-        for node in body_nodes:
-            for sub in ast.walk(node):
+        def _is_connector_error_guard(node: ast.AST) -> bool:
+            """``if isinstance(exc, ConnectorError): ...`` — body is safe."""
+            if not isinstance(node, ast.If):
+                return False
+            test = node.test
+            if not isinstance(test, ast.Call):
+                return False
+            func = test.func
+            if not (isinstance(func, ast.Name) and func.id == "isinstance"):
+                return False
+            if len(test.args) != 2:
+                return False
+            target, klass = test.args
+            if not (isinstance(target, ast.Name) and target.id in {"exc", "e", "exception"}):
+                return False
+            return isinstance(klass, ast.Name) and klass.id == "ConnectorError"
+
+        def _walk_unsafe(node: ast.AST) -> Iterator[ast.AST]:
+            """Yield every descendant whose enclosing scope is NOT a ConnectorError guard."""
+            if _is_connector_error_guard(node):
+                # Skip body and orelse — but still walk the test expression
+                # in case someone tries str(exc) inside the predicate itself.
+                yield from ast.walk(node.test)
+                return
+            yield node
+            for child in ast.iter_child_nodes(node):
+                yield from _walk_unsafe(child)
+
+        unsafe_arg_names = {"exc", "e", "exception"}
+        for top in body_nodes:
+            for sub in _walk_unsafe(top):
                 if isinstance(sub, ast.Call):
                     func = sub.func
                     if isinstance(func, ast.Name) and func.id == "str" and sub.args:
                         arg = sub.args[0]
-                        if isinstance(arg, ast.Name) and arg.id in {"exc", "e", "exception"}:
+                        if isinstance(arg, ast.Name) and arg.id in unsafe_arg_names:
                             raise AssertionError(
-                                "translate_error must not call str() on caught exceptions; "
-                                "wrapped httpx errors carry bearer tokens in their message. "
+                                "translate_error must not call str() on caught exceptions "
+                                "outside an `isinstance(exc, ConnectorError)` branch; "
+                                "wrapped httpx errors carry bearer tokens via __cause__. "
                                 "Use type(exc).__name__ for safe agent-facing surfacing."
                             )
                 if isinstance(sub, ast.FormattedValue):
                     val = sub.value
-                    if isinstance(val, ast.Name) and val.id in {"exc", "e", "exception"}:
+                    if isinstance(val, ast.Name) and val.id in unsafe_arg_names:
                         raise AssertionError(
-                            "translate_error must not f-string-interpolate caught exceptions; "
-                            "wrapped httpx errors carry bearer tokens. Use type(exc).__name__."
+                            "translate_error must not f-string-interpolate caught exceptions "
+                            "outside an `isinstance(exc, ConnectorError)` branch; "
+                            "wrapped httpx errors carry bearer tokens via __cause__. "
+                            "Use type(exc).__name__."
                         )

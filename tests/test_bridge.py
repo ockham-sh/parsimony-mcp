@@ -159,6 +159,17 @@ class _ArgsModel(BaseModel):
 
 
 class TestTranslateError:
+    """Bridge-side rendering tests.
+
+    The agent-facing prose for ``ConnectorError`` subclasses is locked in
+    ``parsimony/tests/test_errors.py`` (kernel default messages).  These
+    tests assert only the bridge's contract: ``[tool_name]`` prefix is
+    added, ``str(exc)`` is rendered for ConnectorError, ValidationError
+    is custom-formatted, and unknown exceptions never expose ``str(exc)``.
+    """
+
+    # ── ValidationError ──────────────────────────────────────────────
+
     def test_validation_error_omits_input_value(self):
         """Critical: Pydantic default str(exc) leaks input_value which may be a secret."""
         try:
@@ -170,61 +181,50 @@ class TestTranslateError:
             assert "query" in text or "count" in text
             assert "sk-secret-key" not in text
 
-    def test_validation_error_truncates_to_5(self):
+    def test_validation_error_announces_invalid_parameters(self):
         try:
             _ArgsModel.model_validate({})
         except ValidationError as exc:
             content = translate_error(exc, "some_tool")
             assert "Invalid parameters" in content[0].text
 
-    def test_unauthorized_has_directive(self):
-        exc = UnauthorizedError(provider="fred")
+    # ── ConnectorError rendering ─────────────────────────────────────
+
+    def test_connector_error_includes_tool_name_prefix(self):
+        """Bridge wraps str(exc) with `[tool_name]` for agent context."""
+        exc = UnauthorizedError(provider="fred", env_var="FRED_API_KEY")
         content = translate_error(exc, "fred_fetch")
         text = content[0].text
-        assert "Authentication" in text
-        assert "fred" in text
-        assert "DO NOT retry" in text
+        assert text.startswith("[fred_fetch] ")
 
-    def test_payment_required_directs_to_different_connector(self):
-        exc = PaymentRequiredError(provider="premium")
-        content = translate_error(exc, "premium_fetch")
-        text = content[0].text
-        assert "DO NOT retry" in text
-        assert "premium" in text
+    def test_connector_error_renders_str_exc_verbatim(self):
+        """The kernel default message reaches the agent unmodified after the prefix."""
+        exc = UnauthorizedError(provider="fred", env_var="FRED_API_KEY")
+        text = translate_error(exc, "fred_fetch")[0].text
+        assert text == f"[fred_fetch] {exc}"
 
-    def test_rate_limit_burst_gives_retry_after(self):
-        exc = RateLimitError(provider="fast", retry_after=30.0)
-        content = translate_error(exc, "fast_fetch")
-        text = content[0].text
-        assert "30 seconds" in text
-        assert "DO NOT retry" in text
+    def test_connector_error_subclasses_all_render_via_str(self):
+        """Every typed subclass must round-trip through `str(exc)`."""
+        cases = [
+            UnauthorizedError(provider="fred"),
+            UnauthorizedError(provider="fred", env_var="FRED_API_KEY"),
+            PaymentRequiredError(provider="premium"),
+            RateLimitError(provider="fast", retry_after=30.0),
+            RateLimitError(provider="q", retry_after=0.0, quota_exhausted=True),
+            EmptyDataError(provider="e"),
+            ConnectorError("flow_id must be non-empty", provider="sdmx"),
+        ]
+        for exc in cases:
+            content = translate_error(exc, "tool")
+            assert content[0].text == f"[tool] {exc}"
 
-    def test_rate_limit_quota_exhausted_says_do_not_retry(self):
-        exc = RateLimitError(provider="q", retry_after=0.0, quota_exhausted=True)
-        content = translate_error(exc, "q_fetch")
-        text = content[0].text
-        assert "DO NOT retry" in text
-        assert "billing" in text.lower()
+    def test_bare_connector_error_passes_author_message_through(self):
+        """The bare ConnectorError contract: author-supplied message is the agent string."""
+        exc = ConnectorError("Set PARSIMONY_X to enable this tool", provider="x")
+        text = translate_error(exc, "x_search")[0].text
+        assert text == "[x_search] Set PARSIMONY_X to enable this tool"
 
-    def test_empty_data_is_not_framed_as_error(self):
-        exc = EmptyDataError(provider="e", message="No rows")
-        content = translate_error(exc, "e_fetch")
-        text = content[0].text
-        # The EmptyDataError is a successful-but-empty signal; the message must
-        # guide the agent to adjust params, not retry identically.
-        assert "No data" in text
-        assert "Adjust" in text
-
-    def test_generic_connector_error_redacts_raw_message(self):
-        """Critical: raw ConnectorError messages may embed secrets via URL query strings."""
-        raw = "GET https://api.example.com/v1/data?api_key=REAL_KEY failed"
-        exc = ConnectorError(raw, provider="slow")
-        content = translate_error(exc, "slow_fetch")
-        text = content[0].text
-        # Provider name appears; raw message (with the secret) does not.
-        assert "slow" in text
-        assert "REAL_KEY" not in text
-        assert "api_key=" not in text
+    # ── Unknown Exception fallback ───────────────────────────────────
 
     def test_unknown_exception_returns_safe_fallback(self):
         exc = RuntimeError("unexpected")

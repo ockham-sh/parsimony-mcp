@@ -190,14 +190,17 @@ class TestCallToolValidationError:
 
 class TestCallToolUnauthorizedError:
     async def test_unauthorized(self) -> None:
-        c = _make_error_connector("err_unauth", UnauthorizedError(provider="test_prov"))
+        c = _make_error_connector(
+            "err_unauth",
+            UnauthorizedError(provider="test_prov", env_var="TEST_PROV_API_KEY"),
+        )
         server = create_server(Connectors([c]))
         result = await _call_tool(server, "err_unauth", {"query": "x"})
         assert result.isError is True
         text = _text(result)
-        assert "Authentication" in text
         assert "test_prov" in text
-        assert "DO NOT retry" in text
+        assert "TEST_PROV_API_KEY" in text
+        assert "DO NOT retry with different arguments" in text
 
 
 class TestCallToolPaymentRequiredError:
@@ -220,8 +223,8 @@ class TestCallToolRateLimitError:
         result = await _call_tool(server, "err_rl", {"query": "x"})
         assert result.isError is True
         text = _text(result)
-        assert "30 seconds" in text
-        assert "DO NOT retry" in text
+        assert "retry after 30s" in text
+        assert "DO NOT retry this tool immediately" in text
 
     async def test_quota_exhausted_says_do_not_retry(self) -> None:
         c = _make_error_connector(
@@ -235,28 +238,50 @@ class TestCallToolRateLimitError:
 
 
 class TestCallToolEmptyDataError:
-    async def test_empty_data(self) -> None:
-        c = _make_error_connector(
-            "err_empty", EmptyDataError(provider="empty", message="No rows")
-        )
+    async def test_empty_data_default_directs_to_adjust_params(self) -> None:
+        c = _make_error_connector("err_empty", EmptyDataError(provider="empty"))
         server = create_server(Connectors([c]))
         result = await _call_tool(server, "err_empty", {"query": "x"})
         assert result.isError is True
         text = _text(result)
-        assert "No data" in text
+        assert "no data returned" in text
+        assert "Adjust parameters" in text
+        # Empty is a valid outcome — agent SHOULD be free to retry with
+        # different params; no DO NOT retry directive.
+        assert "DO NOT" not in text
+
+    async def test_empty_data_author_message_passes_through(self) -> None:
+        c = _make_error_connector(
+            "err_empty_msg", EmptyDataError(provider="empty", message="No rows for UNRATE")
+        )
+        server = create_server(Connectors([c]))
+        result = await _call_tool(server, "err_empty_msg", {"query": "x"})
+        assert result.isError is True
+        assert "No rows for UNRATE" in _text(result)
 
 
 class TestCallToolConnectorError:
-    async def test_generic_connector_error_redacts_raw_message(self) -> None:
-        """Raw ConnectorError messages may embed secrets via query strings."""
-        raw = "GET https://api.example.com/v1/data?api_key=REAL_KEY failed"
-        c = _make_error_connector("err_gen", ConnectorError(raw, provider="slow"))
+    async def test_bare_connector_error_passes_author_message_through(self) -> None:
+        """Bare ConnectorError contract: author-supplied message is the agent string.
+
+        Authors who raise bare ``ConnectorError`` commit to a redaction-clean
+        message — the kernel cannot construct one for them. This test asserts
+        the bridge preserves the contract; ``test_secret_leakage_guards.py``
+        is the defense against unsafe author messages reaching the agent
+        through ``str(exc)`` in unrelated branches.
+        """
+        c = _make_error_connector(
+            "err_gen",
+            ConnectorError(
+                "Set PARSIMONY_X to enable this tool. DO NOT retry.",
+                provider="slow",
+            ),
+        )
         server = create_server(Connectors([c]))
         result = await _call_tool(server, "err_gen", {"query": "x"})
         assert result.isError is True
         text = _text(result)
-        assert "slow" in text
-        assert "REAL_KEY" not in text
+        assert "Set PARSIMONY_X to enable this tool. DO NOT retry." in text
 
 
 class TestCallToolTimeout:
