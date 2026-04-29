@@ -19,7 +19,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "parsimony-core>=0.4,<0.5",
+    "parsimony-core>=0.4.2,<0.5",
     "mcp>=1.0,<2",
     "pandas>=2.0,<3",
     # pydantic is used at the bridge boundary (validate_input=False on
