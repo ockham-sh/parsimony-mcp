@@ -48,7 +48,12 @@ jobs:
           python-version: "3.12"
 
       - name: Sync project (creates .venv, installs editable + dev extras)
-        run: uv sync --extra dev
+        # --no-sources ignores [tool.uv.sources]. The release runner only
+        # checks out parsimony-mcp; the editable kernel path source
+        # (../parsimony) cannot resolve here. Published deps come from
+        # PyPI via [project] dependencies, which is what we actually want
+        # to validate against on a release run.
+        run: uv sync --extra dev --no-sources
 
       - name: Read package version from pyproject
         id: version
