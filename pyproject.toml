@@ -44,6 +44,10 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.11",
     "pip-audit>=2.7",
+    # pip is pulled transitively by pip-audit; pin >=26.1 to clear
+    # CVE-2026-6357. The CVE-2026-3219 ignore in ci.yml stays (separate
+    # advisory still unfixed in the line we depend on).
+    "pip>=26.1",
 ]
 docs = [
     "mkdocs-material>=9.5,<10",
