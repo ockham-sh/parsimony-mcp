@@ -1,6 +1,6 @@
 [project]
 name = "parsimony-mcp"
-version = "0.2.1"
+version = "0.3.0"
 description = "MCP (Model Context Protocol) server adapter for parsimony — exposes a Connectors collection as MCP tools over stdio."
 readme = "README.md"
 requires-python = ">=3.11"
