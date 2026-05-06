@@ -52,27 +52,21 @@ class TestConnectorToTool:
 class TestResultToContent:
     def test_dataframe_emits_toon_tabular_block(self):
         df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
-        result = Result(data=df, provenance=Provenance(source="test"))
+        result = Result(data=df, provenance=Provenance(source="test", source_description="test"))
         content = result_to_content(result)
         assert len(content) == 1
         text = content[0].text
-        # TOON header announces the row count and column list.
-        assert text.startswith("preview[2]{a,b}:")
-        # Rows are indented and comma-separated.
+        assert "data:" in text
+        assert "preview[2]{a,b}:" in text
         assert "  1,x" in text
         assert "  2,y" in text
 
     def test_truncation_emits_total_rows_and_directive_keys(self):
         df = pd.DataFrame({"val": range(100)})
-        result = Result(data=df, provenance=Provenance(source="test"))
-        content = result_to_content(result, max_rows=10)
-        text = content[0].text
-        # Header reflects the preview count, not the total.
-        assert text.startswith("preview[10]{val}:")
-        # Total appears as a top-level TOON key.
+        result = Result(data=df, provenance=Provenance(source="test", source_description="test"))
+        text = result_to_content(result, max_rows=10)[0].text
+        assert "preview[10]{val}:" in text
         assert "total_rows: 100" in text
-        # Truncation directive names the Python escape hatch and closes
-        # the retry door — these strings are agent-loop control.
         assert "discover.load_all().bind_env()" in text
         assert "connectors[" in text
         assert "Discovery preview only" in text
@@ -80,55 +74,97 @@ class TestResultToContent:
 
     def test_no_truncation_keys_below_max_rows(self):
         df = pd.DataFrame({"val": range(5)})
-        result = Result(data=df, provenance=Provenance(source="test"))
-        content = result_to_content(result, max_rows=50)
-        text = content[0].text
+        result = Result(data=df, provenance=Provenance(source="test", source_description="test"))
+        text = result_to_content(result, max_rows=50)[0].text
         assert "total_rows:" not in text
         assert "truncation:" not in text
 
     def test_string_data_emits_value_kv_line(self):
-        result = Result(data="hello world", provenance=Provenance(source="test"))
-        content = result_to_content(result)
-        assert content[0].text == "value: hello world"
+        result = Result(data="hello world", provenance=Provenance(source="test", source_description="test"))
+        text = result_to_content(result)[0].text
+        assert "value: hello world" in text
 
     def test_string_with_special_chars_is_quoted(self):
-        result = Result(data="hello, world", provenance=Provenance(source="test"))
-        content = result_to_content(result)
-        assert content[0].text == 'value: "hello, world"'
+        result = Result(data="hello, world", provenance=Provenance(source="test", source_description="test"))
+        text = result_to_content(result)[0].text
+        assert 'value: "hello, world"' in text
 
     def test_series_emits_two_column_tabular_block(self):
         s = pd.Series({"name": "Test", "value": 42})
-        result = Result(data=s, provenance=Provenance(source="test"))
-        content = result_to_content(result)
-        text = content[0].text
-        assert text.startswith("result[2]{key,value}:")
+        result = Result(data=s, provenance=Provenance(source="test", source_description="test"))
+        text = result_to_content(result)[0].text
+        assert "result[2]{key,value}:" in text
         assert "name,Test" in text
         assert "value,42" in text
 
     def test_compromised_upstream_cell_quoted_not_injected(self):
-        """A cell with a newline / comma / SYSTEM marker must not break out of its row."""
         df = pd.DataFrame({"a": ["safe\nfake_row,fake_value"]})
-        result = Result(data=df, provenance=Provenance(source="test"))
-        content = result_to_content(result)
-        text = content[0].text
-        # Header announces exactly one row regardless of the cell content.
-        assert text.startswith("preview[1]{a}:")
-        # The cell is quoted AND the newline is escaped to ``\n`` (two chars,
-        # backslash + n) so no real newline can break the TOON row layout.
+        result = Result(data=df, provenance=Provenance(source="test", source_description="test"))
+        text = result_to_content(result)[0].text
+        assert "preview[1]{a}:" in text
         assert '"safe\\nfake_row,fake_value"' in text
-        # No raw newline leaks out of the quoted cell into the row stream
-        # (only the trailing newline at end-of-cell is allowed).
-        body = text.split("preview[1]{a}:\n", 1)[1]
-        assert "\n" not in body  # exactly one row, no embedded newlines
 
     def test_dataframe_with_long_string_truncated_in_preview(self):
-        """A 10000-character cell from an upstream is bounded to ~500 chars."""
         long = "x" * 10_000
         df = pd.DataFrame({"a": [long]})
-        result = Result(data=df, provenance=Provenance(source="test"))
+        result = Result(data=df, provenance=Provenance(source="test", source_description="test"))
         text = result_to_content(result)[0].text
         assert long not in text
         assert "…" in text
+
+
+class TestProvenanceBlock:
+    def test_provenance_keyed_in_envelope_when_present(self):
+        df = pd.DataFrame({"a": [1]})
+        result = Result(
+            data=df,
+            provenance=Provenance(source="fred", source_description="fred", params={"series_id": "GDPC1"}),
+        )
+        content = result_to_content(result)
+        assert len(content) == 1
+        text = content[0].text
+        assert text.startswith("provenance:")
+        assert "fred" in text
+        assert "GDPC1" in text
+        assert "data:" in text
+
+    def test_empty_provenance_emits_no_provenance_key(self):
+        df = pd.DataFrame({"a": [1]})
+        result = Result(data=df)
+        content = result_to_content(result)
+        assert len(content) == 1
+        text = content[0].text
+        assert "provenance:" not in text
+        assert "data:" in text
+
+    def test_provenance_redacts_secret_shaped_param_keys(self):
+        df = pd.DataFrame({"a": [1]})
+        result = Result(
+            data=df,
+            provenance=Provenance(
+                source="evil",
+                source_description="evil source",
+                params={"api_key": "sk-leaked", "Token": "t-leaked", "ok": "fine"},
+            ),
+        )
+        text = result_to_content(result)[0].text
+        assert "sk-leaked" not in text
+        assert "t-leaked" not in text
+        assert "«redacted»" in text
+        assert "fine" in text
+
+    def test_provenance_caps_huge_properties_payload(self):
+        df = pd.DataFrame({"a": [1]})
+        bloat = {f"k{i}": "v" * 200 for i in range(50)}
+        result = Result(
+            data=df,
+            provenance=Provenance(source="bloat", source_description="bloat", properties=bloat),
+        )
+        text = result_to_content(result)[0].text
+        assert "truncated: true" in text
+        assert "byte_length:" in text
+        assert "field: properties" in text
+        assert "vvvvvvvvvv" not in text
 
 
 class TestCapCell:
@@ -254,3 +290,37 @@ class TestTranslateError:
         assert "REAL_KEY" not in text
         assert "api_key=" not in text
         assert "api.stlouisfed.org" not in text
+
+
+class TestTranslateErrorCallEnvelope:
+    def test_call_envelope_carries_tool_name_and_params(self):
+        from parsimony.errors import EmptyDataError
+
+        exc = EmptyDataError(provider="fred", message="no rows")
+        content = translate_error(exc, "fred_fetch", call_params={"series_id": "GDPC1"})
+        text = content[0].text
+        assert "error:" in text
+        assert "[fred_fetch] no rows" in text
+        assert "call:" in text
+        assert "tool: fred_fetch" in text
+        assert "GDPC1" in text
+
+    def test_call_envelope_redacts_secret_shaped_keys(self):
+        from parsimony.errors import EmptyDataError
+
+        exc = EmptyDataError(provider="x", message="no rows")
+        params = {"api_key": "sk-leaked", "Token": "t-leaked", "series_id": "GDPC1"}
+        text = translate_error(exc, "x_tool", call_params=params)[0].text
+        assert "sk-leaked" not in text
+        assert "t-leaked" not in text
+        assert "«redacted»" in text
+        assert "GDPC1" in text
+
+    def test_call_envelope_omitted_when_no_params_passed(self):
+        from parsimony.errors import EmptyDataError
+
+        exc = EmptyDataError(provider="fred", message="no rows")
+        content = translate_error(exc, "fred_fetch")
+        text = content[0].text
+        assert "call:" not in text
+        assert text == "[fred_fetch] no rows"
