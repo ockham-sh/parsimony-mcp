@@ -19,7 +19,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "parsimony-core>=0.4.2,<0.5",
+    "parsimony-core>=0.5,<0.6",
     "mcp>=1.0,<2",
     "pandas>=2.0,<3",
     # pydantic is used at the bridge boundary (validate_input=False on
@@ -57,6 +57,9 @@ Issues = "https://github.com/ockham-sh/parsimony-mcp/issues"
 
 [project.scripts]
 parsimony-mcp = "parsimony_mcp.__main__:main"
+
+[tool.uv.sources]
+parsimony-core = { path = "../parsimony", editable = true }
 
 [build-system]
 requires = ["hatchling"]
