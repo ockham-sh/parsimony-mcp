@@ -2,7 +2,34 @@
 
 All notable changes to `parsimony-mcp` will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0]
+
+### Breaking changes
+
+- **Pin `parsimony-core>=0.5,<0.6`.** Provenance is now framework-only
+  with `safe_dump()` redaction; the bridge depends on the new kernel
+  surface. Consumers on `parsimony-core` 0.4.x must stay on
+  `parsimony-mcp` 0.2.x.
+- **`result_to_content` emits a single MCP `TextContent` envelope.**
+  Previously two blocks (provenance + data) — agents had to bind them
+  by positional adjacency, which models handle inconsistently. Now one
+  TOON envelope `{"provenance": {...}, "data": {...}}`. Sentinel/empty
+  provenance omits the `provenance` key. Provenance projection routes
+  through `Provenance.safe_dump()`: secret-named param keys redact to
+  `«redacted»`; oversize fields collapse to `{"truncated": true,
+  "byte_length": N, "field": ...}` markers (never partial prefixes).
+
+### Added
+
+- **`translate_error(call_params=...)` redacted call envelope.** When
+  supplied, the error payload becomes
+  `{"error": "...", "call": {"tool": ..., "params": {redacted}}}` with
+  secret-named values masked via the kernel's `SECRET_NAME_PATTERN`. The
+  agent can reason about what was attempted on retry decisions without
+  ever seeing the raw exception or unredacted secrets. `ValidationError`
+  keeps the plain-text path because the input is unvalidated.
+  `server.call_tool` wires `arguments` through on `ConnectorError` and
+  unhandled-exception branches.
 
 ### Changed
 
@@ -13,13 +40,18 @@ All notable changes to `parsimony-mcp` will be documented in this file. The form
   `EmptyDataError`, generic `ConnectorError`) collapse into one. The
   `ValidationError` branch (which strips Pydantic's `input_value=` for
   secret safety) and the unknown-`Exception` fallback are unchanged.
-  Requires `parsimony-core` from the typed-defaults branch.
 - **`tests/test_secret_leakage_guards.py` AST walker scopes the `str(exc)`
   ban to the unknown-`Exception` branch only.** `str(exc)` is now allowed
   inside `if isinstance(exc, ConnectorError):` because the kernel guarantees
   those messages are agent-safe. The walker skips the body of
   ConnectorError-guarded branches and walks everything else, so a future
   PR that interpolates `exc` into the unknown branch still trips CI.
+- **`[tool.uv.sources]` adds `parsimony-core = { path = "../parsimony",
+  editable = true }`** for local dev + worktree-based CI. Permanent dev
+  convenience; published consumers still resolve from PyPI.
+- **Pin `pip>=26.1` in dev extra** to clear CVE-2026-6357 for the
+  pip-audit gate. Existing `--ignore-vuln CVE-2026-3219` in the workflow
+  remains for the separate pip advisory.
 
 ## [0.2.1]
 
