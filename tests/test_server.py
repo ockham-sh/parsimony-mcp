@@ -90,8 +90,13 @@ async def _list_tools(server: Server) -> mcp_types.ListToolsResult:
 
 
 def _text(result: mcp_types.CallToolResult) -> str:
+    """Return the data block text — always the last block.
+
+    Successful responses may emit a provenance block first; errors emit
+    only the error block. ``content[-1]`` covers both cases.
+    """
     assert result.content, "Expected at least one content block"
-    block = result.content[0]
+    block = result.content[-1]
     assert isinstance(block, mcp_types.TextContent)
     return block.text
 

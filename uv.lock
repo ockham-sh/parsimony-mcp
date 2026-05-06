@@ -1156,7 +1156,7 @@ wheels = [
 [[package]]
 name = "parsimony-core"
 version = "0.4.2"
-source = { registry = "https://pypi.org/simple" }
+source = { editable = "../parsimony" }
 dependencies = [
     { name = "httpx" },
     { name = "pandas" },
@@ -1165,10 +1165,37 @@ dependencies = [
     { name = "pydantic" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/03/95/484e0ee092b9ab082a9d9540d54b773078769718d34d6f924d84b8dd8044/parsimony_core-0.4.2.tar.gz", hash = "sha256:104eb36666fb2edd5965e165167415f898214ebc0905df0ce06cd94750cfa89e", size = 79817, upload-time = "2026-04-29T12:47:55.74Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/97/e2/c575971c4f4dcbeb1599021ffa2d4ebfa1b147e93feaea148c1a92400be5/parsimony_core-0.4.2-py3-none-any.whl", hash = "sha256:75b96662706aee02ed64036cdab1caf7fc221b042d08bdd35b918aa07079bd53", size = 83049, upload-time = "2026-04-29T12:47:54.035Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "faiss-cpu", marker = "extra == 'standard'", specifier = ">=1.8.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "huggingface-hub", marker = "extra == 'standard'", specifier = ">=0.25.0" },
+    { name = "litellm", marker = "extra == 'litellm'", specifier = ">=1.59.0,<2" },
+    { name = "mkdocs-material", marker = "extra == 'docs'" },
+    { name = "mkdocs-multirepo-plugin", marker = "extra == 'docs'", specifier = ">=0.7" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
+    { name = "onnxruntime", marker = "extra == 'standard-onnx'", specifier = ">=1.18.0" },
+    { name = "optimum", extras = ["onnxruntime"], marker = "extra == 'standard-onnx'", specifier = ">=1.22.0" },
+    { name = "pandas", specifier = ">=2.3.0,<3" },
+    { name = "parsimony-core", extras = ["standard"], marker = "extra == 'standard-onnx'" },
+    { name = "parsimony-core", extras = ["standard", "litellm"], marker = "extra == 'dev'" },
+    { name = "parsimony-core", extras = ["standard", "standard-onnx", "litellm", "s3"], marker = "extra == 'all'" },
+    { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.7" },
+    { name = "platformdirs", specifier = ">=4.0.0,<5" },
+    { name = "pyarrow", specifier = ">=23.0.1" },
+    { name = "pydantic", specifier = ">=2.11.1,<3" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.3" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1.3.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
+    { name = "rank-bm25", marker = "extra == 'standard'", specifier = ">=0.2" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.10" },
+    { name = "s3fs", marker = "extra == 's3'", specifier = ">=2024.0" },
+    { name = "sentence-transformers", marker = "extra == 'standard'", specifier = ">=3.0.0" },
+    { name = "tenacity", specifier = ">=9.0.0,<10" },
+    { name = "types-requests", marker = "extra == 'dev'", specifier = ">=2.31" },
 ]
+provides-extras = ["standard", "standard-onnx", "litellm", "s3", "all", "dev", "docs"]
 
 [[package]]
 name = "parsimony-mcp"
@@ -1186,6 +1213,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "mypy" },
+    { name = "pip" },
     { name = "pip-audit" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -1202,7 +1230,8 @@ requires-dist = [
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5,<10" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11" },
     { name = "pandas", specifier = ">=2.0,<3" },
-    { name = "parsimony-core", specifier = ">=0.4.2,<0.5" },
+    { name = "parsimony-core", editable = "../parsimony" },
+    { name = "pip", marker = "extra == 'dev'", specifier = ">=26.1" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.7" },
     { name = "pydantic", specifier = ">=2.7,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
@@ -1225,11 +1254,11 @@ wheels = [
 
 [[package]]
 name = "pip"
-version = "26.0.1"
+version = "26.1.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/48/83/0d7d4e9efe3344b8e2fe25d93be44f64b65364d3c8d7bc6dc90198d5422e/pip-26.0.1.tar.gz", hash = "sha256:c4037d8a277c89b320abe636d59f91e6d0922d08a05b60e85e53b296613346d8", size = 1812747, upload-time = "2026-02-05T02:20:18.702Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b6/48/cb9b7a682f6fe01a4221e1728941dd4ac3cd9090a17db3779d6ff490b602/pip-26.1.1.tar.gz", hash = "sha256:d36762751d156a4ee895de8af39aa0abeeeb577f93a2eca6ab62467bbf0f8a78", size = 1840400, upload-time = "2026-05-04T19:02:21.248Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/de/f0/c81e05b613866b76d2d1066490adf1a3dbc4ee9d9c839961c3fc8a6997af/pip-26.0.1-py3-none-any.whl", hash = "sha256:bdb1b08f4274833d62c1aa29e20907365a2ceb950410df15fc9521bad440122b", size = 1787723, upload-time = "2026-02-05T02:20:16.416Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/eb/fea4d1d51c49832120f7f285d07306db3960f423a2612c6057caf3e8196f/pip-26.1.1-py3-none-any.whl", hash = "sha256:99cb1c2899893b075ff56e4ed0af55669a955b49ad7fb8d8603ecdaf4ed653fb", size = 1812777, upload-time = "2026-05-04T19:02:18.9Z" },
 ]
 
 [[package]]

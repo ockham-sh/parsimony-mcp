@@ -249,11 +249,11 @@ def create_server(connectors: Connectors) -> Server:
                 ]
             )
         except ValidationError as exc:
+            # ValidationError fires before Pydantic accepts the input;
+            # the raw arguments are unvalidated and must not be echoed
+            # into the call envelope.
             return _error_result(translate_error(exc, name))
         except TypeError as exc:
-            # Kernel's Connector.__call__ raises TypeError for "Missing params"
-            # before Pydantic validation runs. Treat it as a validation failure
-            # from the agent's perspective rather than a catch-all internal error.
             return _error_result(
                 [
                     TextContent(
@@ -267,16 +267,13 @@ def create_server(connectors: Connectors) -> Server:
                 "connector error",
                 extra={"tool": name, "exc_type": type(exc).__name__},
             )
-            return _error_result(translate_error(exc, name))
+            return _error_result(translate_error(exc, name, call_params=arguments))
         except Exception as exc:
-            # Never log the traceback chain: wrapped httpx errors carry
-            # bearer tokens through __cause__/__context__. Emit only
-            # exc_type + tool, keep the stdio session alive.
             logger.error(
                 "unhandled exception in call_tool",
                 extra={"tool": name, "exc_type": type(exc).__name__},
             )
-            return _error_result(translate_error(exc, name))
+            return _error_result(translate_error(exc, name, call_params=arguments))
         return CallToolResult(
             content=cast(list[ContentBlock], result_to_content(result)),
             isError=False,

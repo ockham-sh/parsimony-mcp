@@ -30,7 +30,7 @@ import pandas as pd
 from mcp.types import TextContent, Tool
 from parsimony.connector import Connector
 from parsimony.errors import ConnectorError
-from parsimony.result import Result
+from parsimony.result import REDACTED, SECRET_NAME_PATTERN, Provenance, Result
 from pydantic import ValidationError
 from toons import dumps as encode
 
@@ -60,33 +60,42 @@ def connector_to_tool(conn: Connector) -> Tool:
     )
 
 
-def result_to_content(result: Result, max_rows: int = _MAX_ROWS) -> list[TextContent]:
-    """Serialize a connector Result to MCP text content as TOON.
+def _provenance_envelope(provenance: Provenance) -> dict[str, Any] | None:
+    """Wire-safe provenance dict, or ``None`` when there is no source to report."""
+    if not provenance.source:
+        return None
+    raw = provenance.safe_dump()
+    return {k: v for k, v in raw.items() if v not in (None, {}, "", [])}
 
-    DataFrames render as a tabular block followed by ``total_rows``
-    and a ``truncation`` directive when the head is smaller than the
-    full result. Series render as a 2-column tabular block. Scalars
-    render as a single ``value:`` line.
-    """
-    data = result.data
-    payload: dict[str, Any]
+
+def _build_data_block(data: Any, max_rows: int) -> dict[str, Any]:
+    """Render a connector's ``data`` value into the envelope's data block."""
     if isinstance(data, pd.DataFrame):
         total = len(data)
         preview = data.head(max_rows).map(_cap_cell)
-        payload = {"preview": preview.to_dict("records")}
+        out: dict[str, Any] = {"preview": preview.to_dict("records")}
         if total > max_rows:
-            payload["total_rows"] = total
-            payload["truncation"] = (
+            out["total_rows"] = total
+            out["truncation"] = (
                 f"Discovery preview only — for the full {total} rows, "
                 f"load via discover.load_all().bind_env() and call "
                 f"connectors['<connector>'](...) in Python. "
                 f"Do not call this MCP tool again hoping for more rows."
             )
-    elif isinstance(data, pd.Series):
+        return out
+    if isinstance(data, pd.Series):
         capped = data.map(_cap_cell)
-        payload = {"result": [{"key": str(k), "value": v} for k, v in capped.items()]}
-    else:
-        payload = {"value": _cap_cell(data) if isinstance(data, str) else data}
+        return {"result": [{"key": str(k), "value": v} for k, v in capped.items()]}
+    return {"value": _cap_cell(data) if isinstance(data, str) else data}
+
+
+def result_to_content(result: Result, max_rows: int = _MAX_ROWS) -> list[TextContent]:
+    """Serialize a connector Result to a single MCP TOON envelope ``{provenance, data}``."""
+    payload: dict[str, Any] = {}
+    envelope = _provenance_envelope(result.provenance)
+    if envelope is not None:
+        payload["provenance"] = envelope
+    payload["data"] = _build_data_block(result.data, max_rows)
     return [TextContent(type="text", text=encode(payload))]
 
 
@@ -106,7 +115,12 @@ def _format_validation_error(exc: ValidationError, tool_name: str) -> str:
     return f"Invalid parameters for {tool_name}: " + "; ".join(lines) + suffix
 
 
-def translate_error(exc: BaseException, tool_name: str) -> list[TextContent]:
+def translate_error(
+    exc: BaseException,
+    tool_name: str,
+    *,
+    call_params: dict[str, Any] | None = None,
+) -> list[TextContent]:
     """Render an exception as agent-safe text content.
 
     The agent-facing prose for ``ConnectorError`` subclasses lives in
@@ -122,19 +136,27 @@ def translate_error(exc: BaseException, tool_name: str) -> list[TextContent]:
     chain on httpx-wrapped errors carries bearer tokens and request URLs,
     so ``str(exc)`` / interpolation of ``exc`` is forbidden in this
     branch (enforced by ``tests/test_secret_leakage_guards.py``).
+
+    When *call_params* is supplied, the connector and unknown-exception
+    branches return a TOON envelope ``{"error": "...", "call": {"tool":
+    ..., "params": {...}}}`` with secret-named param values redacted via
+    :data:`SECRET_NAME_PATTERN`. ``ValidationError`` keeps the plain-text
+    path because its input is unvalidated and may carry malformed values.
     """
     if isinstance(exc, ValidationError):
         return _error_content(_format_validation_error(exc, tool_name))
     if isinstance(exc, ConnectorError):
-        # str(exc) is kernel-controlled text for typed subclasses, and
-        # author-controlled-but-contractually-safe for bare ConnectorError.
-        # See parsimony.errors module docstring for the contract.
-        return _error_content(f"[{tool_name}] {exc}")
-    # Unknown exception — bearer-token leak risk via __cause__/__context__
-    # on wrapped httpx errors. Emit only the class identifier.
-    return _error_content(
-        f"Internal error in {tool_name} ({type(exc).__name__}); see server logs"
-    )
+        message = f"[{tool_name}] {exc}"
+    else:
+        message = f"Internal error in {tool_name} ({type(exc).__name__}); see server logs"
+    if call_params is None:
+        return _error_content(message)
+    redacted = {
+        k: (REDACTED if SECRET_NAME_PATTERN.search(k) else v)
+        for k, v in call_params.items()
+    }
+    payload = {"error": message, "call": {"tool": tool_name, "params": redacted}}
+    return [TextContent(type="text", text=encode(payload))]
 
 
 __all__ = ["_cap_cell", "connector_to_tool", "result_to_content", "translate_error"]
